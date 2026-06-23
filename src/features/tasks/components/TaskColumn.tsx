@@ -4,6 +4,9 @@ import { TaskCard } from './TaskCard';
 interface TaskColumnProps {
   status: TaskStatus;
   tasks: Task[];
+  mutatingIds?: ReadonlySet<number>;
+  onPromote?: (task: Task) => void;
+  onDemote?: (task: Task) => void;
 }
 
 const COLUMN_CONFIG: Record<string, { label: string; headerBg: string; accent: string; border: string }> = {
@@ -27,7 +30,7 @@ const COLUMN_CONFIG: Record<string, { label: string; headerBg: string; accent: s
   },
 };
 
-export function TaskColumn({ status, tasks }: TaskColumnProps) {
+export function TaskColumn({ status, tasks, mutatingIds, onPromote, onDemote }: TaskColumnProps) {
   const config = COLUMN_CONFIG[status] ?? COLUMN_CONFIG.TODO;
 
   return (
@@ -50,7 +53,13 @@ export function TaskColumn({ status, tasks }: TaskColumnProps) {
           </p>
         ) : (
           tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard
+              key={task.id}
+              task={task}
+              isMutating={mutatingIds?.has(task.id ?? -1) ?? false}
+              onPromote={onPromote}
+              onDemote={onDemote}
+            />
           ))
         )}
       </div>

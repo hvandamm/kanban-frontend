@@ -7,6 +7,7 @@ interface UseKanbanBoardResult {
   boardName: string;
   loading: boolean;
   error: string | null;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }
 
 export function useKanbanBoard(): UseKanbanBoardResult {
@@ -67,5 +68,5 @@ export function useKanbanBoard(): UseKanbanBoardResult {
     };
   }, []);
 
-  return { tasks, boardName, loading, error };
+  return { tasks, boardName, loading, error, setTasks };
 }

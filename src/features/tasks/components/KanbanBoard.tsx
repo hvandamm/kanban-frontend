@@ -1,13 +1,18 @@
-import { useMemo } from 'react';
-import type { Task } from '../../../api/generated/model';
+import { useMemo, useCallback } from 'react';
 import { TaskStatus } from '../../../api/generated/model';
+import type { Task } from '../../../api/generated/model';
 import { TaskColumn } from './TaskColumn';
+import { useTaskMutations } from '../hooks/useTaskMutations';
 
 interface KanbanBoardProps {
   tasks: Task[];
   loading: boolean;
   error: string | null;
+  onSetTasks: React.Dispatch<React.SetStateAction<Task[]>>;
 }
+
+// Status pipeline order (TODO → IN_PROGRESS → DONE)
+const STATUS_ORDER: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE'];
 
 function LoadingSkeleton() {
   return (
@@ -44,7 +49,38 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-export function KanbanBoard({ tasks, loading, error }: KanbanBoardProps) {
+function TransitionErrorBanner({
+  error,
+  onDismiss,
+}: {
+  error: { taskId: number; message: string };
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="mb-6 flex items-start gap-3 rounded-lg border border-red-800/50 bg-red-950/40 px-4 py-3 backdrop-blur-sm">
+      <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+      <div className="flex-1">
+        <p className="text-sm font-medium text-red-300">Task update failed</p>
+        <p className="mt-0.5 text-xs text-red-400/80">{error.message}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="flex h-6 w-6 items-center justify-center rounded text-red-400/60 transition-colors hover:bg-red-800/40 hover:text-red-300"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+export function KanbanBoard({ tasks, loading, error, onSetTasks }: KanbanBoardProps) {
+  const { mutatingIds, transitionError, dismissError, transitionTask } = useTaskMutations();
+
   const columns = useMemo(() => {
     const grouped: Record<string, Task[]> = {
       [TaskStatus.TODO]: [],
@@ -64,6 +100,35 @@ export function KanbanBoard({ tasks, loading, error }: KanbanBoardProps) {
     return grouped;
   }, [tasks]);
 
+  const optimisticUpdater = useCallback(
+    (taskId: number, newStatus: TaskStatus) => {
+      onSetTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: newStatus } : t)),
+      );
+    },
+    [onSetTasks],
+  );
+
+  const handlePromote = useCallback(
+    (task: Task) => {
+      const idx = STATUS_ORDER.indexOf(task.status as TaskStatus);
+      if (idx < STATUS_ORDER.length - 1) {
+        transitionTask(task, STATUS_ORDER[idx + 1], optimisticUpdater);
+      }
+    },
+    [transitionTask, optimisticUpdater],
+  );
+
+  const handleDemote = useCallback(
+    (task: Task) => {
+      const idx = STATUS_ORDER.indexOf(task.status as TaskStatus);
+      if (idx > 0) {
+        transitionTask(task, STATUS_ORDER[idx - 1], optimisticUpdater);
+      }
+    },
+    [transitionTask, optimisticUpdater],
+  );
+
   if (loading) {
     return <LoadingSkeleton />;
   }
@@ -73,10 +138,36 @@ export function KanbanBoard({ tasks, loading, error }: KanbanBoardProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-      <TaskColumn status={TaskStatus.TODO} tasks={columns[TaskStatus.TODO]} />
-      <TaskColumn status={TaskStatus.IN_PROGRESS} tasks={columns[TaskStatus.IN_PROGRESS]} />
-      <TaskColumn status={TaskStatus.DONE} tasks={columns[TaskStatus.DONE]} />
+    <div>
+      {/* Dismissible transition error banner */}
+      {transitionError && (
+        <TransitionErrorBanner error={transitionError} onDismiss={dismissError} />
+      )}
+
+      {/* Kanban columns */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <TaskColumn
+          status={TaskStatus.TODO}
+          tasks={columns[TaskStatus.TODO]}
+          mutatingIds={mutatingIds}
+          onPromote={handlePromote}
+          onDemote={handleDemote}
+        />
+        <TaskColumn
+          status={TaskStatus.IN_PROGRESS}
+          tasks={columns[TaskStatus.IN_PROGRESS]}
+          mutatingIds={mutatingIds}
+          onPromote={handlePromote}
+          onDemote={handleDemote}
+        />
+        <TaskColumn
+          status={TaskStatus.DONE}
+          tasks={columns[TaskStatus.DONE]}
+          mutatingIds={mutatingIds}
+          onPromote={handlePromote}
+          onDemote={handleDemote}
+        />
+      </div>
     </div>
   );
 }
