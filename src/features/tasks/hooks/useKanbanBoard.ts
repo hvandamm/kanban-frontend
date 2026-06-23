@@ -4,6 +4,7 @@ import type { Task } from '../../../api/generated/model';
 
 interface UseKanbanBoardResult {
   tasks: Task[];
+  boardId: number | null;
   boardName: string;
   loading: boolean;
   error: string | null;
@@ -12,6 +13,7 @@ interface UseKanbanBoardResult {
 
 export function useKanbanBoard(): UseKanbanBoardResult {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [boardId, setBoardId] = useState<number | null>(null);
   const [boardName, setBoardName] = useState<string>('Loading...');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +42,7 @@ export function useKanbanBoard(): UseKanbanBoardResult {
         const board = boards[0];
         if (!cancelled) {
           setBoardName(board.name ?? 'Kanban Board');
+          setBoardId(board.id ?? null);
         }
 
         // 2. Fetch all tasks
@@ -68,5 +71,5 @@ export function useKanbanBoard(): UseKanbanBoardResult {
     };
   }, []);
 
-  return { tasks, boardName, loading, error, setTasks };
+  return { tasks, boardId, boardName, loading, error, setTasks };
 }

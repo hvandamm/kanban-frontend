@@ -6,6 +6,7 @@ import { useTaskMutations } from '../hooks/useTaskMutations';
 
 interface KanbanBoardProps {
   tasks: Task[];
+  boardId: number | null;
   loading: boolean;
   error: string | null;
   onSetTasks: React.Dispatch<React.SetStateAction<Task[]>>;
@@ -49,11 +50,11 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-function TransitionErrorBanner({
+function ErrorBanner({
   error,
   onDismiss,
 }: {
-  error: { taskId: number; message: string };
+  error: { taskId?: number; message: string };
   onDismiss: () => void;
 }) {
   return (
@@ -62,7 +63,7 @@ function TransitionErrorBanner({
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
       </svg>
       <div className="flex-1">
-        <p className="text-sm font-medium text-red-300">Task update failed</p>
+        <p className="text-sm font-medium text-red-300">Action failed</p>
         <p className="mt-0.5 text-xs text-red-400/80">{error.message}</p>
       </div>
       <button
@@ -78,8 +79,17 @@ function TransitionErrorBanner({
   );
 }
 
-export function KanbanBoard({ tasks, loading, error, onSetTasks }: KanbanBoardProps) {
-  const { mutatingIds, transitionError, dismissError, transitionTask } = useTaskMutations();
+export function KanbanBoard({ tasks, boardId, loading, error, onSetTasks }: KanbanBoardProps) {
+  const {
+    mutatingIds,
+    transitionError,
+    dismissError,
+    transitionTask,
+    createTask,
+    deleteTask,
+    isCreating,
+    isDeleting,
+  } = useTaskMutations();
 
   const columns = useMemo(() => {
     const grouped: Record<string, Task[]> = {
@@ -129,6 +139,21 @@ export function KanbanBoard({ tasks, loading, error, onSetTasks }: KanbanBoardPr
     [transitionTask, optimisticUpdater],
   );
 
+  const handleCreateTask = useCallback(
+    (title: string, description: string, status: TaskStatus) => {
+      if (boardId == null) return;
+      createTask(boardId, title, description, status, onSetTasks);
+    },
+    [boardId, createTask, onSetTasks],
+  );
+
+  const handleDeleteTask = useCallback(
+    (taskId: number) => {
+      deleteTask(taskId, onSetTasks);
+    },
+    [deleteTask, onSetTasks],
+  );
+
   if (loading) {
     return <LoadingSkeleton />;
   }
@@ -139,9 +164,9 @@ export function KanbanBoard({ tasks, loading, error, onSetTasks }: KanbanBoardPr
 
   return (
     <div>
-      {/* Dismissible transition error banner */}
+      {/* Dismissible error banner */}
       {transitionError && (
-        <TransitionErrorBanner error={transitionError} onDismiss={dismissError} />
+        <ErrorBanner error={transitionError} onDismiss={dismissError} />
       )}
 
       {/* Kanban columns */}
@@ -149,23 +174,34 @@ export function KanbanBoard({ tasks, loading, error, onSetTasks }: KanbanBoardPr
         <TaskColumn
           status={TaskStatus.TODO}
           tasks={columns[TaskStatus.TODO]}
+          boardId={boardId}
+          isCreating={isCreating}
           mutatingIds={mutatingIds}
+          isDeleting={isDeleting}
           onPromote={handlePromote}
           onDemote={handleDemote}
+          onCreateTask={handleCreateTask}
+          onDeleteTask={handleDeleteTask}
         />
         <TaskColumn
           status={TaskStatus.IN_PROGRESS}
           tasks={columns[TaskStatus.IN_PROGRESS]}
+          boardId={boardId}
           mutatingIds={mutatingIds}
+          isDeleting={isDeleting}
           onPromote={handlePromote}
           onDemote={handleDemote}
+          onDeleteTask={handleDeleteTask}
         />
         <TaskColumn
           status={TaskStatus.DONE}
           tasks={columns[TaskStatus.DONE]}
+          boardId={boardId}
           mutatingIds={mutatingIds}
+          isDeleting={isDeleting}
           onPromote={handlePromote}
           onDemote={handleDemote}
+          onDeleteTask={handleDeleteTask}
         />
       </div>
     </div>
