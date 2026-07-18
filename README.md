@@ -13,6 +13,7 @@ Before you begin, ensure you have the following installed on your machine:
 ##  Getting Started & Installation
 
 Before starting you should setup the backend from https://github.com/hvandamm/kanban-spring-backend
+
 Follow these steps to get the frontend development server running on your local machine.
 
 ### 1. Clone the Repository
