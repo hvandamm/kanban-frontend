@@ -2,7 +2,7 @@
 
 This is the user interface for the Kanban Board application. It connects to the Spring Boot backend to manage boards, tasks, and columns.
 
-## 📋 Prerequisites
+##  Prerequisites
 
 Before you begin, ensure you have the following installed on your machine:
 * **Node.js**: v22.23.x LTS (or compatible 22.x version)
@@ -10,7 +10,7 @@ Before you begin, ensure you have the following installed on your machine:
 
 ---
 
-## 🚀 Getting Started & Installation
+##  Getting Started & Installation
 
 Before starting you should setup the backend from https://github.com/hvandamm/kanban-spring-backend
 Follow these steps to get the frontend development server running on your local machine.
