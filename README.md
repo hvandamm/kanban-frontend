@@ -2,6 +2,8 @@
 
 This is the user interface for the Kanban Board application. It connects to the Spring Boot backend to manage boards, tasks, and columns.
 
+![kanban frontend](public/kanban_screenshot.png)
+
 ##  Prerequisites
 
 Before you begin, ensure you have the following installed on your machine:
